@@ -1,0 +1,158 @@
+import { useState } from 'react';
+import { 
+  Modal, 
+  View, 
+  Text, 
+  Pressable, 
+  ScrollView
+} from 'react-native';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, ShieldAlert, CheckCircle, Copy, Share2 } from 'lucide-react';
+import tw from 'twrnc';
+
+interface Props {
+  show: boolean;
+  onClose: () => void;
+}
+
+export function SystemSettingsModal({ show, onClose }: Props) {
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+
+  const handleSave = () => {
+    if (typeof window !== 'undefined') {
+      // Explicitly make sure legacy keys are cleared
+      localStorage.removeItem('app_user_hf_api_key');
+      localStorage.removeItem('app_user_reasoning_engine');
+      localStorage.removeItem('app_user_vision_model');
+    }
+    setSaveStatus('saved');
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+
+  const handleCopyLink = () => {
+    if (typeof window !== 'undefined') {
+      // Use current origin as the link
+      const link = window.location.href;
+      navigator.clipboard.writeText(link).then(() => {
+        setCopyStatus('copied');
+        setTimeout(() => setCopyStatus('idle'), 2000);
+      }).catch(err => {
+        console.warn("Clipboard write failed", err);
+      });
+    }
+  };
+
+  return (
+    <Modal
+      visible={show}
+      transparent={true}
+      animationType="none"
+      onRequestClose={onClose}
+    >
+      <AnimatePresence>
+        {show && (
+          <View style={tw`flex-1 justify-center items-center px-4`}>
+              <Pressable 
+                style={tw`absolute inset-0 bg-black bg-opacity-20`}
+                onPress={() => setTimeout(onClose, 10)}
+              >
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  style={{ flex: 1 }}
+                />
+              </Pressable>
+            
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="w-full max-w-md bg-[#14161C] border border-white border-opacity-10 rounded-2xl shadow-2xl overflow-hidden relative z-10 flex flex-col"
+              style={{ maxHeight: '85%' }}
+            >
+              <View style={tw`flex-row items-center justify-between p-4 border-b border-white border-opacity-10`}>
+                <View style={tw`flex-row items-center`}>
+                  <ShieldAlert style={tw`mr-2 text-[#D9B382]`} size={20} />
+                  <Text style={tw`text-lg font-bold text-white`}>System Settings</Text>
+                </View>
+                <Pressable 
+                  onPress={() => setTimeout(onClose, 10)} 
+                  style={({ pressed }) => [tw`p-2 hover:bg-white bg-opacity-20 rounded-full`, { opacity: pressed ? 0.7 : 1 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                >
+                  <X size={20} color="#8B95B0" />
+                </Pressable>
+              </View>
+              
+              <ScrollView style={tw`flex-1 p-6`} contentContainerStyle={tw`pb-20`}>
+                <View style={tw`mb-8`}>
+                  <Text style={tw`text-sm font-semibold text-[#8B95B0] uppercase tracking-wider mb-4`}>
+                    Share Application
+                  </Text>
+                  <View style={tw`border border-white border-opacity-10 p-4 rounded-xl bg-black bg-opacity-20 mb-4`}>
+                    <View style={tw`flex-col`}>
+                      <View style={tw`flex-row items-center gap-3 mb-4`}>
+                        <View style={tw`w-10 h-10 rounded-lg bg-[#D9B382]/10 items-center justify-center`}>
+                          <Share2 size={18} color="#D9B382" />
+                        </View>
+                        <View>
+                          <Text style={tw`text-white font-bold text-sm`}>Public Share Link</Text>
+                          <Text style={tw`text-[#8B95B0] text-[10px]`}>Share this offline terminal with others</Text>
+                        </View>
+                      </View>
+                      <Pressable 
+                        onPress={handleCopyLink}
+                        style={({ pressed }) => [
+                          tw`w-full py-3 rounded-lg flex-row items-center justify-center gap-2`,
+                          copyStatus === 'copied' ? tw`bg-green-500/10` : tw`bg-[#D9B382]/10`,
+                          { opacity: pressed ? 0.7 : 1 }
+                        ]}
+                      >
+                        {copyStatus === 'copied' ? (
+                          <CheckCircle size={14} color="#22C55E" />
+                        ) : (
+                          <Copy size={14} color="#D9B382" />
+                        )}
+                        <Text style={[tw`text-xs font-bold uppercase`, copyStatus === 'copied' ? tw`text-green-500` : tw`text-[#D9B382]`]}>
+                          {copyStatus === 'copied' ? 'Copied' : 'Copy'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                <Pressable
+                  onPress={handleSave}
+                  style={({ pressed }) => [
+                    tw`mt-8 w-full py-4 rounded-xl flex-row items-center justify-center`,
+                    saveStatus === 'saved' 
+                      ? tw`bg-green-500/20 border border-green-500 border-opacity-10` 
+                      : tw`bg-[#D9B382]`,
+                    { opacity: pressed ? 0.7 : 1 }
+                  ]}
+                >
+                  {saveStatus === 'saved' && <CheckCircle style={tw`mr-2 text-green-400`} size={18} />}
+                  <Text style={[
+                    tw`text-sm font-bold`,
+                    saveStatus === 'saved' ? tw`text-green-400` : tw`text-[#1A1308]`
+                  ]}>
+                    {saveStatus === 'saved' ? 'Settings Saved' : 'Save Settings'}
+                  </Text>
+                </Pressable>
+
+                <View style={tw`bg-black bg-opacity-20 p-4 rounded-xl mt-4 mb-4`}>
+                  <Text style={tw`text-[10px] text-[#8B95B0] text-center italic`}>
+                    Offline Math Engine is Active. No external APIs used.
+                  </Text>
+                </View>
+              </ScrollView>
+            </motion.div>
+          </View>
+        )}
+      </AnimatePresence>
+    </Modal>
+  );
+}
